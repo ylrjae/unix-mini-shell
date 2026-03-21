@@ -13,7 +13,9 @@ int main () {
     while (1){
 	printf("myshell> "); //prints prompt//
 	
-	getline(&line, &len, stdin); //reads input//
+	if (getline(&line, &len, stdin) == -1) {  //reads input//
+    break; 
+}
 	
 	line [strcspn(line, "\n")] = 0;
 
