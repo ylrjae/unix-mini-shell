@@ -21,8 +21,17 @@ int main () {
 
 	pid_t pid = fork(); //creates child processes//
 
-	if (pid == 0) { 	//if process id = 0 send error message and exit //
+  if (pid < 0) {
+    perror("fork failed");
 
+    else 	if (pid == 0) { 	//if process id = 0 send error message and exit //
+   
+    }
+
+    else {
+    }
+
+  }  
 	char  *args[] = {line, NULL};
 
 	execvp(args[0], args);
