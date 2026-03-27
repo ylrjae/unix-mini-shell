@@ -55,6 +55,20 @@ int main () {
     continue;
   }
 
+// cd implentation
+
+if (strcmp(args[0],"cd") == 0){
+  if (argc < 2) {
+    chdir(getenv("HOME"));
+  } else {
+  if (chdir(args[1]) != 0) {
+      perror ( "cd failed");
+    }
+  }
+continue;
+}
+// forking process 
+
 	pid_t pid = fork(); //creates child processes//
 
   if (pid < 0) {
