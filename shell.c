@@ -67,6 +67,17 @@ if (strcmp(args[0],"cd") == 0){
   }
 continue;
 }
+
+// exit
+
+if (strcmp(args[0],"exit") == 0) {
+  for ( int i = 0; i <argc; i++){
+      free(args[i]);
+  }
+  free(args);
+  free(line);
+  exit(0);
+}
 // forking process 
 
 	pid_t pid = fork(); //creates child processes//
@@ -94,4 +105,4 @@ continue;
  free(line); // free memory allocated to user input//
 
 }    
- 
+
