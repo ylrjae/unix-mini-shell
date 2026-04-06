@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <fcntl.h>
 
 #define MAX_ARGS 64 //Defines a max of 64 slots to be used in the heap//
                     //pointers = 8 bytes. 64 * 8 = 512 bytes//
@@ -111,7 +112,33 @@ if (strcmp(cmd.args[0],"exit") == 0) {
     perror("fork failed");
      continue;
   }
-    else 	if (pid == 0) { 	//if process id = 0 send error message and exit //
+    else 	if (pid == 0) { 	                    //if process id = 0 send error message and exit //
+      if (cmd.outfile != NULL){
+
+        int flag = cmd.append
+          ? O_WRONLY | O_CREAT | O_APPEND
+          : O_WRONLY | O_CREAT | O_TRUNC;
+
+        //fprintf(stderr, "DEBUG outfile: %s append: %d\n", cmd.outfile, cmd.append); 
+        int out = open(cmd.outfile,flag, 0644);
+
+        if (out < 0) {              // catch error and exit
+          perror ("file not found");
+          exit(1);
+        }
+          dup2(out,1);
+          close(out);
+      }
+        if (cmd.infile != NULL){
+        int in = open(cmd.infile, O_RDONLY);
+        
+        if (in < 0){
+          perror("file not found");
+          exit(1);
+        }
+          dup2(in,0);
+          close(in);
+      }
     execvp(cmd.args [0], cmd.args);
     perror("exec failed");
     exit(1);
