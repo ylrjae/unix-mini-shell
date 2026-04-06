@@ -120,24 +120,24 @@ if (strcmp(cmd.args[0],"exit") == 0) {
           : O_WRONLY | O_CREAT | O_TRUNC;
 
         //fprintf(stderr, "DEBUG outfile: %s append: %d\n", cmd.outfile, cmd.append); 
-        int out = open(cmd.outfile,flag, 0644);
+        int fd = open(cmd.outfile,flag, 0644);
 
-        if (out < 0) {              // catch error and exit
+        if (fd < 0) {              // catch error and exit
           perror ("file not found");
           exit(1);
         }
-          dup2(out,1);
-          close(out);
+          dup2(fd,1);
+          close(fd);
       }
         if (cmd.infile != NULL){
-        int in = open(cmd.infile, O_RDONLY);
+        int fd = open(cmd.infile, O_RDONLY);
         
-        if (in < 0){
+        if (fd < 0){
           perror("file not found");
           exit(1);
         }
-          dup2(in,0);
-          close(in);
+          dup2(fd,0);
+          close(fd);
       }
     execvp(cmd.args [0], cmd.args);
     perror("exec failed");
