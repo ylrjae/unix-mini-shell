@@ -5,6 +5,7 @@
 #include <string.h>
 #include <fcntl.h>
 
+#define MAX_PIPES 12
 #define MAX_ARGS 64 //Defines a max of 64 slots to be used in the heap//
                     //pointers = 8 bytes. 64 * 8 = 512 bytes//
 
@@ -56,6 +57,17 @@ free (input);
 
 }
 
+int cmd_split(char *line, Command *command){
+  int command_c = 0;
+  char *token = strtok(line, "|");  
+
+  while (token != NULL){
+    parse_input(token, &command[command_c]);
+    command_c ++;
+    token = strtok(NULL, "|");
+  }
+  return command_c;
+}
 int main () {
     
     char *line = NULL;
@@ -71,7 +83,10 @@ int main () {
 	line [strcspn(line, "\n")] = 0;
   
   Command cmd;
+  Command commands[MAX_PIPES];
   parse_input(line, &cmd);
+  
+  int num_commands = cmd_split(line, commands);
 
   if (cmd.argc == 0){
     for( int i = 0; i < cmd.argc; i++){
