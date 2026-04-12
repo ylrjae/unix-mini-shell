@@ -82,27 +82,36 @@ int main () {
 	
 	line [strcspn(line, "\n")] = 0;
   
-  Command cmd;
   Command commands[MAX_PIPES];
-  parse_input(line, &cmd);
-  
   int num_commands = cmd_split(line, commands);
+  int pipes [MAX_PIPES][2];
+  int num_pipes = num_commands -1;
 
-  if (cmd.argc == 0){
-    for( int i = 0; i < cmd.argc; i++){
-      free(cmd.args[i]);
+  // Pipe implementation
+
+  for (int i = 0; i < num_pipes; i++){
+
+    if (pipe(pipes[i]) == -1){
+        perror ("error during pipe process");
+        exit(1);
+      }
+    } 
+
+  if (commands[0].argc == 0){
+    for( int i = 0; i < commands[0].argc; i++){
+      free(commands[0].args[i]);
     }
-    free(cmd.args);
+    free(commands[0].args);
     continue;
   }
 
 // cd implentation
 
-if (strcmp(cmd.args[0],"cd") == 0){
-  if (cmd.argc < 2) {
+if (strcmp(commands[0].args[0],"cd") == 0){
+  if (commands[0].argc < 2) {
     chdir(getenv("HOME"));
   } else {
-  if (chdir(cmd.args[1]) != 0) {
+  if (chdir(commands[0].args[1]) != 0) {
       perror ( "cd failed");
     }
   }
@@ -111,11 +120,11 @@ continue;
 
 // exit
 
-if (strcmp(cmd.args[0],"exit") == 0) {
-  for ( int i = 0; i <cmd.argc; i++){
-      free(cmd.args[i]);
+if (strcmp(commands[0].args[0],"exit") == 0) {
+  for ( int i = 0; i <commands[0].argc; i++){
+      free(commands[0].args[i]);
   }
-  free(cmd.args);
+  free(commands[0].args);
   free(line);
   exit(0);
 }
@@ -128,14 +137,14 @@ if (strcmp(cmd.args[0],"exit") == 0) {
      continue;
   }
     else 	if (pid == 0) { 	                    //if process id = 0 send error message and exit //
-      if (cmd.outfile != NULL){
+      if (commands[0].outfile != NULL){
 
-        int flag = cmd.append
+        int flag = commands[0].append
           ? O_WRONLY | O_CREAT | O_APPEND
           : O_WRONLY | O_CREAT | O_TRUNC;
 
-        //fprintf(stderr, "DEBUG outfile: %s append: %d\n", cmd.outfile, cmd.append); 
-        int fd = open(cmd.outfile,flag, 0644);
+        //fprintf(stderr, "DEBUG outfile: %s append: %d\n", commands[0].outfile, commands[0].append); 
+        int fd = open(commands[0].outfile,flag, 0644);
 
         if (fd < 0) {              // catch error and exit
           perror ("file not found");
@@ -144,8 +153,8 @@ if (strcmp(cmd.args[0],"exit") == 0) {
           dup2(fd,1);
           close(fd);
       }
-        if (cmd.infile != NULL){
-        int fd = open(cmd.infile, O_RDONLY);
+        if (commands[0].infile != NULL){
+        int fd = open(commands[0].infile, O_RDONLY);
         
         if (fd < 0){
           perror("file not found");
@@ -154,7 +163,7 @@ if (strcmp(cmd.args[0],"exit") == 0) {
           dup2(fd,0);
           close(fd);
       }
-    execvp(cmd.args [0], cmd.args);
+    execvp(commands[0].args [0], commands[0].args);
     perror("exec failed");
     exit(1);
     }
@@ -163,10 +172,10 @@ if (strcmp(cmd.args[0],"exit") == 0) {
       waitpid(pid, NULL, 0); 
     } 
 
-  for( int i = 0; i < cmd.argc; i++){
-  free(cmd.args[i]);
+  for( int i = 0; i < commands[0].argc; i++){
+  free(commands[0].args[i]);
  }
-  free(cmd.args); // free parsed cmd.args array before next loop iteration//
+  free(commands[0].args); // free parsed commands[0].args array before next loop iteration//
 
   }
  free(line); // free memory allocated to user input//
