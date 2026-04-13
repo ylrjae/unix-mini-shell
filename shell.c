@@ -79,24 +79,18 @@ int main () {
 	if (getline(&line, &len, stdin) == -1) {  //reads input//
     break; 
 }
-	
+
 	line [strcspn(line, "\n")] = 0;
   
   Command commands[MAX_PIPES];
-  int num_commands = cmd_split(line, commands);
+  char *line_d = strdup(line);
+  int num_commands = cmd_split(line_d, commands);
+  free(line_d);
+
   int pipes [MAX_PIPES][2];
   int num_pipes = num_commands -1;
 
-  // Pipe implementation
-
-  for (int i = 0; i < num_pipes; i++){
-
-    if (pipe(pipes[i]) == -1){
-        perror ("error during pipe process");
-        exit(1);
-      }
-    } 
-
+// input check
   if (commands[0].argc == 0){
     for( int i = 0; i < commands[0].argc; i++){
       free(commands[0].args[i]);
@@ -105,8 +99,8 @@ int main () {
     continue;
   }
 
-// cd implentation
 
+//cd implementation
 if (strcmp(commands[0].args[0],"cd") == 0){
   if (commands[0].argc < 2) {
     chdir(getenv("HOME"));
@@ -128,57 +122,67 @@ if (strcmp(commands[0].args[0],"exit") == 0) {
   free(line);
   exit(0);
 }
-// forking process 
 
-	pid_t pid = fork(); //creates child processes//
+  // Pipe implementation
 
-  if (pid < 0) {
-    perror("fork failed");
-     continue;
-  }
-    else 	if (pid == 0) { 	                    //if process id = 0 send error message and exit //
-      if (commands[0].outfile != NULL){
+  pid_t pid;
 
-        int flag = commands[0].append
-          ? O_WRONLY | O_CREAT | O_APPEND
-          : O_WRONLY | O_CREAT | O_TRUNC;
+  for (int i = 0; i < num_pipes; i++){
 
-        //fprintf(stderr, "DEBUG outfile: %s append: %d\n", commands[0].outfile, commands[0].append); 
-        int fd = open(commands[0].outfile,flag, 0644);
-
-        if (fd < 0) {              // catch error and exit
-          perror ("file not found");
-          exit(1);
-        }
-          dup2(fd,1);
-          close(fd);
+    if (pipe(pipes[i]) == -1){
+        perror ("error during pipe process");
+        exit(1);
       }
-        if (commands[0].infile != NULL){
-        int fd = open(commands[0].infile, O_RDONLY);
-        
-        if (fd < 0){
-          perror("file not found");
-          exit(1);
-        }
-          dup2(fd,0);
-          close(fd);
-      }
-    execvp(commands[0].args [0], commands[0].args);
-    perror("exec failed");
-    exit(1);
-    }
-
-    else {
-      waitpid(pid, NULL, 0); 
     } 
 
-  for( int i = 0; i < commands[0].argc; i++){
-  free(commands[0].args[i]);
- }
-  free(commands[0].args); // free parsed commands[0].args array before next loop iteration//
+for (int i = 0; i < num_commands; i++){
+  pid = fork();
+    if (pid < 0) {
+      perror ("fork failed");
+      continue;
 
+    } else if (pid ==0) {
+      
+      if (commands[i].outfile != NULL){
+      int flag = commands[i].append
+        ? O_WRONLY | O_CREAT | O_APPEND
+        : O_WRONLY | O_CREAT | O_TRUNC;
+      int fd = open(commands[i].outfile,flag, 0644);
+      if (fd < 0) {              // catch error and exit
+         perror ("file not found");
+         exit(1);
+       }
+         dup2(fd,1);
+         close(fd);
+       }
+       if (commands[i].infile != NULL){
+         int fd = open(commands[i].infile, O_RDONLY);
+         if (fd < 0){
+           perror("file not found");
+           exit(1);
+       }
+       dup2(fd,0);
+       close(fd);
+      }
+       execvp(commands[i].args[0], commands[i].args);
+       perror("error creating process");
+       exit(1);
+     }
+     else {
+       waitpid(pid, NULL, 0);
+    }
+}
+
+for (int i = 0; i < num_commands; i++){
+  for( int j = 0; j < commands[i].argc; j++){
+  free(commands[i].args[j]);
   }
- free(line); // free memory allocated to user input//
 
-}    
+  free(commands[i].args); // free parsed commands[0].args array before next loop iteration//
+                          //
+  }
 
+  } 
+free(line); // free memory allocated to user input//
+   
+}
