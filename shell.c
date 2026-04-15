@@ -59,12 +59,13 @@ free (input);
 
 int cmd_split(char *line, Command *command){
   int command_c = 0;
-  char *token = strtok(line, "|");  
+  char *saveptr;
+  char *token = strtok_r(line, "|", &saveptr);  
 
   while (token != NULL){
     parse_input(token, &command[command_c]);
-    command_c ++;
-    token = strtok(NULL, "|");
+    command_c++;
+    token = strtok_r(NULL, "|", &saveptr);
   }
   return command_c;
 }
@@ -124,25 +125,39 @@ if (strcmp(commands[0].args[0],"exit") == 0) {
 }
 
   // Pipe implementation
-
   pid_t pid;
+  pid_t pids[MAX_PIPES];
 
-  for (int i = 0; i < num_pipes; i++){
-
+  for (int i = 0; i < num_pipes; i++) {
     if (pipe(pipes[i]) == -1){
         perror ("error during pipe process");
         exit(1);
-      }
-    } 
+    }
+  } 
+
+  // forking process
 
 for (int i = 0; i < num_commands; i++){
-  pid = fork();
+    pid = fork();
     if (pid < 0) {
       perror ("fork failed");
       continue;
-
-    } else if (pid ==0) {
-      
+  } else if (pid ==0) {
+    
+     // wiring the pipe 
+    if ( i < num_commands -1){ //check if not last command and use dup2 to set the pipe end and fd
+        dup2(pipes[i][1],1);
+      }
+    if ( i > 0 ){              //check if not  first command and set dup 2 to set end of pipe and fd
+        dup2(pipes[i-1][0],0);
+      }
+    
+    // close pipe end
+      for (int j = 0 ; j < num_pipes; j++){
+        close(pipes[j][0]);
+        close(pipes[j][1]);
+      }
+    // redirection process  
       if (commands[i].outfile != NULL){
       int flag = commands[i].append
         ? O_WRONLY | O_CREAT | O_APPEND
@@ -168,21 +183,30 @@ for (int i = 0; i < num_commands; i++){
        perror("error creating process");
        exit(1);
      }
-     else {
-       waitpid(pid, NULL, 0);
-    }
+    pids[i] = pid;
+}
+// parent closes pipe ends
+for ( int i = 0; i < num_pipes; i++) {
+  close(pipes[i][0]);
+  close(pipes[i][1]);
 }
 
+// waiting for children
+for ( int i = 0; i < num_commands; i++) {
+  waitpid(pids[i], NULL, 0);
+}
+
+// free commands
 for (int i = 0; i < num_commands; i++){
   for( int j = 0; j < commands[i].argc; j++){
   free(commands[i].args[j]);
   }
 
   free(commands[i].args); // free parsed commands[0].args array before next loop iteration//
-                          //
-  }
+
+}
 
   } 
 free(line); // free memory allocated to user input//
-   
-}
+}   
+
