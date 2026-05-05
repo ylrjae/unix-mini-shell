@@ -4,6 +4,8 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <errno.h>
 
 #define MAX_PIPES 12
 #define MAX_ARGS 64 //Defines a max of 64 slots to be used in the heap//
@@ -69,15 +71,28 @@ int cmd_split(char *line, Command *command){
   }
   return command_c;
 }
+
+void sig_handling(int sig){
+  (void) sig; // for the compiler to ignore //
+  write(1, "\n",1);
+}
 int main () {
     
     char *line = NULL;
     size_t len = 0;
 
+// signal handling to terminate processses
+struct sigaction sa;
+  sa.sa_handler = sig_handling;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;  
+  sigaction(SIGINT, &sa, NULL);
+
     while (1){
 	printf("$ > "); //prints prompt//
 	
 	if (getline(&line, &len, stdin) == -1) {  //reads input//
+    if (errno == EINTR) continue;
     break; 
 }
 
@@ -121,6 +136,8 @@ if (strcmp(commands[0].args[0],"exit") == 0) {
   }
   free(commands[0].args);
   free(line);
+  if (commands[0].infile) free(commands[0].infile);
+  if (commands[0].outfile) free(commands[0].outfile);
   exit(0);
 }
 
@@ -179,6 +196,7 @@ for (int i = 0; i < num_commands; i++){
        dup2(fd,0);
        close(fd);
       }
+       signal(SIGINT, SIG_DFL);
        execvp(commands[i].args[0], commands[i].args);
        perror("error creating process");
        exit(1);
@@ -196,16 +214,17 @@ for ( int i = 0; i < num_commands; i++) {
   waitpid(pids[i], NULL, 0);
 }
 
-// free commands
-for (int i = 0; i < num_commands; i++){
-  for( int j = 0; j < commands[i].argc; j++){
-  free(commands[i].args[j]);
+
+for (int i = 0; i < num_commands; i++) {
+  for (int j = 0; j < commands [i].argc; j++) {
+      free(commands[i].args[j]);
   }
 
-  free(commands[i].args); // free parsed commands[0].args array before next loop iteration//
+  free(commands[i].args);
+  if (commands[i].infile) free(commands[i].infile);
+  if (commands[i].outfile) free(commands[i].outfile);
 
 }
-
   } 
 free(line); // free memory allocated to user input//
 }   
