@@ -1,3 +1,7 @@
 myshell
 myshell.dSYM/
 *.swp
+myshell
+myshell.dSYM/
+*.swp
+*.o
